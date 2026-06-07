@@ -1,0 +1,738 @@
+import express from 'express';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+app.use(express.static(__dirname));
+
+// Original RoomZyon Texting Edition Firebase (För Chatt och Rum)
+const firebaseConfig = {
+  apiKey: "AIzaSyAUc_WUxD1338PpAUm1xeFZwSAC-S1_hHc",
+  authDomain: "roomzyon-texting-edition.firebaseapp.com",
+  projectId: "roomzyon-texting-edition",
+  storageBucket: "roomzyon-texting-edition.firebasestorage.app",
+  messagingSenderId: "246071097603",
+  appId: "1:246071097603:web:4b42f79af66c6ffd209136"
+};
+
+// NyxirCore Firebase (För Auth och Globala Användarprofiler)
+const firebaseConfig_nyxirCore = {
+  apiKey: "AIzaSyBraEVVYiuK3dpOv3_QF9qVv3ueQcQTzuA",
+  authDomain: "nyxircore.firebaseapp.com",
+  projectId: "nyxircore",
+  storageBucket: "nyxircore.firebasestorage.app",
+  messagingSenderId: "791317338261",
+  appId: "1:791317338261:web:9ecc11d952cf792e11e39c"
+};
+
+app.get('/api/config', (req, res) => res.json(firebaseConfig));
+app.get('/api/config/nyxir', (req, res) => res.json(firebaseConfig_nyxirCore));
+
+const htmlContent = `
+<!DOCTYPE html>
+<html lang="sv" class="notranslate" translate="no">
+<head>
+<meta charset="UTF-8">
+<meta name="google" content="notranslate">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>RoomZyon - Texting Edition</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="roomzyon_logo.png">
+<link rel="icon" href="roomzyon_logo.png">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;800&display=swap');
+
+  :root { 
+    --bg: #030406; 
+    --card: #0a0d14; 
+    --accent: #6b4cff; 
+    --accent-glow: #8a2be2;
+    --text: #ffffff; 
+    --muted: #8a95b5; 
+    --border: rgba(255,255,255,0.05);
+    --danger: #ff4d4d;
+    --success: #00e676;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Poppins', sans-serif; }
+  body { background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; display: flex; justify-content: center; align-items: center; }
+
+  /* Göm Google Translate bar om den tvingas fram */
+  .skiptranslate, google-translate-frame, #goog-gt-tt { display: none !important; }
+  body { top: 0 !important; }
+
+  /* Custom Popup Modaler */
+  .modal-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); display: none; justify-content: center; align-items: center; z-index: 2000; opacity: 0; transition: opacity 0.3s ease; }
+  .modal-box { background: var(--card); border: 1px solid var(--border); padding: 30px; border-radius: 24px; width: 400px; max-width: 90%; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.5); transform: scale(0.9); transition: transform 0.3s ease; }
+  .modal-overlay.active { display: flex; opacity: 1; }
+  .modal-overlay.active .modal-box { transform: scale(1); }
+  .modal-box h3 { margin-bottom: 15px; font-weight: 600; }
+  .modal-box p { color: var(--muted); font-size: 14px; margin-bottom: 20px; }
+
+  /* Inloggningsskärm Slider */
+  #authScreen { position: relative; width: 850px; max-width: 95%; min-height: 500px; background: var(--card); border-radius: 30px; overflow: hidden; border: 1px solid var(--border); box-shadow: 0 20px 50px rgba(0,0,0,0.8); display: flex; }
+  .form-container { position: absolute; top: 0; height: 100%; transition: all 0.6s ease-in-out; display: flex; flex-direction: column; justify-content: center; padding: 0 50px; text-align: center; }
+  .sign-in-container { left: 0; width: 50%; z-index: 2; }
+  .sign-up-container { left: 0; width: 50%; opacity: 0; z-index: 1; }
+  
+  #authScreen.right-panel-active .sign-in-container { transform: translateX(100%); opacity: 0; }
+  #authScreen.right-panel-active .sign-up-container { transform: translateX(100%); opacity: 1; z-index: 5; animation: show 0.6s; }
+
+  .overlay-container { position: absolute; top: 0; left: 50%; width: 50%; height: 100%; overflow: hidden; transition: transform 0.6s ease-in-out; z-index: 100; }
+  #authScreen.right-panel-active .overlay-container { transform: translateX(-100%); }
+  .overlay { background: linear-gradient(135deg, var(--accent), var(--accent-glow)); color: #fff; position: relative; left: -100%; height: 100%; width: 200%; transform: translateX(0); transition: transform 0.6s ease-in-out; }
+  #authScreen.right-panel-active .overlay { transform: translateX(50%); }
+  
+  .overlay-panel { position: absolute; display: flex; align-items: center; justify-content: center; flex-direction: column; padding: 0 40px; text-align: center; top: 0; height: 100%; width: 50%; transition: transform 0.6s ease-in-out; }
+  .overlay-right { right: 0; }
+  
+  input, textarea, select { background: rgba(255,255,255,0.03); border: 1px solid var(--border); color: #fff; padding: 15px; border-radius: 14px; margin-bottom: 12px; width: 100%; outline: none; transition: 0.2s; font-size: 14px; }
+  input:focus, textarea:focus, select:focus { border-color: var(--accent); background: rgba(255,255,255,0.06); }
+  
+  button { background: var(--accent); color: #fff; border: none; padding: 14px 30px; border-radius: 30px; font-weight: 600; cursor: pointer; transition: transform 0.2s, background 0.2s; margin-top: 10px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+  button:hover { background: var(--accent-glow); transform: translateY(-1px); }
+  button.ghost { background: transparent; border: 2px solid #fff; }
+  button.danger { background: var(--danger); }
+  button.danger:hover { background: #cc3f3f; }
+
+  /* App Layout */
+  #appScreen { width: 100%; height: 100vh; display: none; }
+  .sidebar { width: 280px; background: #06080c; border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 30px 20px; justify-content: space-between; }
+  .main-content { flex: 1; position: relative; overflow: hidden; display: flex; flex-direction: column; background: var(--bg); }
+  
+  .nav-group { display: flex; flex-direction: column; gap: 8px; }
+  .nav-item { padding: 14px 18px; border-radius: 16px; cursor: pointer; color: var(--muted); transition: 0.3s; display: flex; align-items: center; gap: 14px; font-weight: 500; }
+  .nav-item svg { width: 20px; height: 20px; fill: currentColor; flex-shrink: 0; }
+  .nav-item:hover { color: #fff; background: rgba(255,255,255,0.02); }
+  .nav-item.active { background: rgba(107, 76, 255, 0.1); color: var(--accent); font-weight: 600; }
+  
+  .user-tag { padding: 15px; background: rgba(255,255,255,0.02); border-radius: 16px; border: 1px solid var(--border); display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 14px; color: #fff; }
+  .user-tag .avatar-dot { width: 8px; height: 8px; background: var(--success); border-radius: 50%; }
+
+  /* Tab-innehåll */
+  .tab-content { display: none; padding: 40px; height: 100%; overflow-y: auto; width: 100%; }
+  .tab-content.active { display: flex; flex-direction: column; }
+  .tab-content h1 { font-size: 28px; font-weight: 800; margin-bottom: 25px; }
+
+  /* Grid & Flex layouts för vyer */
+  .split-view { display: flex; gap: 30px; height: 100%; overflow: hidden; }
+  .list-side { width: 300px; border-right: 1px solid var(--border); padding-right: 20px; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; }
+  .chat-side { flex: 1; display: flex; flex-direction: column; justify-content: space-between; height: 100%; background: rgba(255,255,255,0.01); border-radius: 20px; border: 1px solid var(--border); padding: 20px; }
+  
+  .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 100%)); gap: 15px; }
+  .item-card { background: var(--card); border: 1px solid var(--border); padding: 20px; border-radius: 18px; display: flex; flex-direction: column; gap: 10px; }
+  .item-card h4 { font-weight: 600; color: #fff; }
+  .item-card p { color: var(--muted); font-size: 13px; }
+
+  /* Chatt-komponenter */
+  .msg-area { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding-bottom: 20px; }
+  .bubble { max-width: 70%; padding: 12px 18px; border-radius: 18px; font-size: 14px; line-height: 1.5; }
+  .bubble.me { background: var(--accent); color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; }
+  .bubble.them { background: rgba(255,255,255,0.05); color: #fff; align-self: flex-start; border-bottom-left-radius: 4px; }
+  .bubble-meta { font-size: 10px; color: rgba(255,255,255,0.5); margin-top: 5px; display: block; text-align: right; }
+
+  @keyframes show { 0%, 49.99% { opacity: 0; z-index: 1; } 50%, 100% { opacity: 1; z-index: 5; } }
+
+  /* RESPONSIV MOBIL- & SURFPLATTEDESIGN */
+  @media (max-width: 768px) {
+    body { align-items: flex-start; }
+    
+    /* Mobilanpassning för Auth / Inloggning */
+    #authScreen { width: 100%; min-height: 100vh; border-radius: 0; border: none; flex-direction: column; }
+    .form-container { width: 100% !important; height: 50% !important; padding: 20px; position: relative !important; transform: none !important; opacity: 1 !important; z-index: 2 !important; }
+    .overlay-container { display: none; } /* Dölj desktop-slidern på mobil */
+    #authScreen.right-panel-active .sign-in-container { display: none; }
+    #authScreen:not(.right-panel-active) .sign-up-container { display: none; }
+
+    /* Mobil Layout för Appen (Omvandla till bottenmeny) */
+    #appScreen { flex-direction: column-reverse; }
+    .sidebar { width: 100%; height: 70px; flex-direction: row; padding: 5px 10px; border-right: none; border-top: 1px solid var(--border); background: #06080c; z-index: 1000; }
+    .sidebar h2, .sidebar .user-tag { display: none; } /* Dölj logga och usertag i mobila bottenraden */
+    .nav-group { flex-direction: row; width: 100%; justify-content: space-around; gap: 0; }
+    .nav-item { padding: 10px; border-radius: 12px; flex-direction: column; gap: 4px; font-size: 10px; flex: 1; text-align: center; }
+    .nav-item svg { width: 18px; height: 18px; }
+
+    /* Justering av vyer och meddelandefält */
+    .tab-content { padding: 20px 15px 90px 15px; height: calc(100vh - 70px); }
+    .split-view { flex-direction: column; gap: 15px; overflow-y: auto; }
+    .list-side { width: 100%; border-right: none; border-bottom: 1px solid var(--border); padding-right: 0; padding-bottom: 15px; max-height: 200px; }
+    .chat-side { height: 400px; min-height: 350px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="customModal" class="modal-overlay" onclick="closeModal()">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <h3 id="modalTitle">Meddelande</h3>
+    <p id="modalText">Innehåll...</p>
+    <button onclick="closeModal()">OK</button>
+  </div>
+</div>
+
+<div id="authScreen">
+  <div class="form-container sign-up-container">
+    <h1 id="t_su_title">Skapa konto</h1>
+    <p id="t_su_sub" style="margin-bottom:20px; color:var(--muted);">Börja din resa med NyxirCore</p>
+    <input id="r_u" type="text" placeholder="Användarnamn">
+    <input id="r_p" type="password" placeholder="Lösenord">
+    <button onclick="handleAuth('reg')" id="b_su">Registrera dig</button>
+    <p style="margin-top: 15px; font-size: 13px; color: var(--accent);" class="mobile-toggle" onclick="document.getElementById('authScreen').classList.remove('right-panel-active')">Redan ett konto? Logga in</p>
+  </div>
+  <div class="form-container sign-in-container">
+    <h1 id="t_si_title">Välkommen tillbaka</h1>
+    <p id="t_si_sub" style="margin-bottom:20px; color:var(--muted);">Logga in på ditt universella Nyxir-konto</p>
+    <input id="l_u" type="text" placeholder="Användarnamn">
+    <input id="l_p" type="password" placeholder="Lösenord">
+    <button onclick="handleAuth('login')" id="b_si">Logga in</button>
+    <p style="margin-top: 15px; font-size: 13px; color: var(--accent);" class="mobile-toggle" onclick="document.getElementById('authScreen').classList.add('right-panel-active')">Inget konto? Registrera</p>
+  </div>
+  <div class="overlay-container">
+    <div class="overlay">
+      <div class="overlay-panel" style="left: -50%; transform: translateX(-20%);">
+        <h1 id="t_o_r1">Redan medlem?</h1>
+        <button class="ghost" onclick="document.getElementById('authScreen').classList.remove('right-panel-active')" id="b_o_r1">Logga in</button>
+      </div>
+      <div class="overlay-panel overlay-right">
+        <h1 id="t_o_r2">Ny här?</h1>
+        <button class="ghost" onclick="document.getElementById('authScreen').classList.add('right-panel-active')" id="b_o_r2">Registrera</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="appScreen">
+  <div class="sidebar">
+    <div class="nav-group">
+      <h2 style="margin-bottom:30px; background: linear-gradient(to right, #fff, var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight:800; font-size:24px;">RoomZyon</h2>
+      
+      <div class="nav-item active" onclick="showTab('home')" id="m_home">
+        <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+        <span>Hem</span>
+      </div>
+      <div class="nav-item" onclick="showTab('rooms')" id="m_rooms">
+        <svg viewBox="0 0 24 24"><path d="M19 13H5v-2h14v2z M12 5.5c-4.69 0-8.5 3.81-8.5 8.5s3.81 8.5 8.5 8.5 8.5-3.81 8.5-8.5-3.81-8.5-8.5-8.5z"/></svg>
+        <span>Rum</span>
+      </div>
+      <div class="nav-item" onclick="showTab('chats')" id="m_chats">
+        <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/></svg>
+        <span>Chatt</span>
+      </div>
+      <div class="nav-item" onclick="showTab('usersView')" id="m_users">
+        <svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+        <span>Användare</span>
+      </div>
+      <div class="nav-item" onclick="showTab('account')" id="m_account">
+        <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h14v-2c0-2.66-5.33-4-8-4z"/></svg>
+        <span>Konto</span>
+      </div>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-item" onclick="logout()" style="color: var(--danger);" id="m_logout">
+        <svg viewBox="0 0 24 24"><path d="M10.09 15.59L11.5 17l5-5-5-5-1.41 1.41L12.67 11H3v2h9.67l-2.58 2.59zM19 3H5c-1.11 0-2 .9-2 2v4h2V5h14v14H5v-4H3v4c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/></svg>
+        <span>Logga ut</span>
+      </div>
+      <div class="user-tag">
+        <div class="avatar-dot"></div>
+        <span id="globalUserTag">...</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="main-content">
+    
+    <div id="home" class="tab-content active">
+      <h1 id="h_welcome">Välkommen till RoomZyon Texting Edition</h1>
+      <p id="h_sub" style="color:var(--muted);">Välj en flik i menyn för att starta krypterade rum eller direktmeddelanden via NyxirCore Auth.</p>
+    </div>
+
+    <div id="rooms" class="tab-content">
+      <h1 id="r_title">Klassiska Rum</h1>
+      <div class="split-view">
+        <div class="list-side">
+          <input type="text" id="roomInputName" placeholder="Rumsnamn">
+          <input type="password" id="roomInputPass" placeholder="Lösenord">
+          <button onclick="joinOrCreateRoom()" id="r_btn_join">Gå med / Skapa</button>
+        </div>
+        <div class="chat-side">
+          <div class="msg-area" id="roomMsgArea"></div>
+          <div style="display:flex; gap:10px;">
+            <input type="text" id="roomMsgInput" placeholder="Skriv i rummet..." style="margin-bottom:0;">
+            <button onclick="sendRoomMessage()" id="r_btn_send">Sänd</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="chats" class="tab-content">
+      <h1 id="c_title">Direktchatt</h1>
+      <div class="split-view">
+        <div class="list-side">
+          <input type="text" id="addContactInput" placeholder="Användarnamn">
+          <button onclick="addContact()" id="c_btn_add">Lägg till kontakt</button>
+          <div id="contactsList" style="display:flex; flex-direction:column; gap:8px; margin-top:15px;"></div>
+        </div>
+        <div class="chat-side">
+          <div class="msg-area" id="directMsgArea"></div>
+          <div style="display:flex; gap:10px;">
+            <input type="text" id="directMsgInput" placeholder="Skriv privat meddelande..." style="margin-bottom:0;" disabled>
+            <button onclick="sendDirectMessage()" id="c_btn_send" disabled>Sänd</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="usersView" class="tab-content">
+      <h1 id="u_title">Offentliga Profiler</h1>
+      <div class="cards-grid" id="publicUsersGrid"></div>
+    </div>
+
+    <div id="account" class="tab-content">
+      <h1 id="a_title">Kontoinformation</h1>
+      <div style="max-width:500px; display:flex; flex-direction:column; gap:15px;">
+        <div>
+          <label style="font-size:12px; color:var(--muted);" id="l_lang">VÄLJ SPRÅK</label>
+          <select id="langSelect" onchange="changeLanguage(this.value)">
+            <option value="sv">Svenska</option>
+            <option value="en">English</option>
+            <option value="de">Deutsch</option>
+            <option value="es">Español</option>
+            <option value="fr">Français</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:12px; color:var(--muted);" id="l_desc">BESKRIVNING</label>
+          <textarea id="accDesc" placeholder="Skriv din biografi här..."></textarea>
+        </div>
+        <div>
+          <label style="font-size:12px; color:var(--muted);" id="l_status">PROFILSTATUS</label>
+          <select id="accStatus">
+            <option value="private">Privat</option>
+            <option value="public">Offentlig</option>
+          </select>
+        </div>
+        <button onclick="saveAccountInfo()" id="a_btn_save">Spara inställningar</button>
+        <hr style="border:0; border-top:1px solid var(--border); margin:20px 0;">
+        <button onclick="deleteAccount()" class="danger" id="a_btn_del">Radera konto permanent</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, deleteUser } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+  import { getFirestore, doc, setDoc, getDoc, collection, addDoc, updateDoc, deleteDoc, query, where, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+  const [resTexting, resNyxir] = await Promise.all([
+    fetch('/api/config'),
+    fetch('/api/config/nyxir')
+  ]);
+  
+  const configTexting = await resTexting.json();
+  const configNyxir = await resNyxir.json();
+
+  const appNyxir = initializeApp(configNyxir, "nyxirCore");
+  const authNyxir = getAuth(appNyxir);
+  const dbNyxir = getFirestore(appNyxir);
+
+  const appTexting = initializeApp(configTexting);
+  const dbTexting = getFirestore(appTexting);
+
+  let currentUser = "";
+  let activeRoom = "";
+  let activeChatPartner = "";
+  let unsubscribeRoom = null;
+  let unsubscribeChats = null;
+
+  const languages = {
+    sv: {
+      t_su_title: "Skapa konto", t_su_sub: "Börja din resa med NyxirCore", b_su: "Registrera dig",
+      t_si_title: "Välkommen tillbaka", t_si_sub: "Logga in på ditt universella Nyxir-konto",
+      b_si: "Logga in", t_o_r1: "Redan medlem?", b_o_r1: "Logga in", t_o_r2: "Ny här?", b_o_r2: "Registrera",
+      m_home: "Hem", m_rooms: "Rum", m_chats: "Chatt", m_users: "Användare", m_account: "Konto", m_logout: "Logga ut",
+      h_welcome: "Välkommen till RoomZyon Texting Edition", h_sub: "Välj en flik i menyn till vänster för att starta.",
+      r_title: "Klassiska Rum", r_btn_join: "Gå med / Skapa", r_btn_send: "Sänd",
+      c_title: "Direktchatt", c_btn_add: "Lägg till kontakt", c_btn_send: "Sänd",
+      u_title: "Offentliga Profiler", a_title: "Kontoinformation", l_lang: "VÄLJ SPRÅK",
+      l_desc: "BESKRIVNING", l_status: "PROFILSTATUS", a_btn_save: "Spara inställningar", a_btn_del: "Radera konto"
+    },
+    en: {
+      t_su_title: "Create Account", t_su_sub: "Start your journey with NyxirCore", b_su: "Sign Up",
+      t_si_title: "Welcome Back", t_si_sub: "Login to your universal Nyxir account",
+      b_si: "Login", t_o_r1: "Already a member?", b_o_r1: "Login", t_o_r2: "New here?", b_o_r2: "Register",
+      m_home: "Home", m_rooms: "Rooms", m_chats: "Chat", m_users: "Users", m_account: "Account", m_logout: "Logout",
+      h_welcome: "Welcome to RoomZyon Texting Edition", h_sub: "Select a tab from the left menu to start.",
+      r_title: "Classic Rooms", r_btn_join: "Join / Create", r_btn_send: "Send",
+      c_title: "Direct Chat", c_btn_add: "Add Contact", c_btn_send: "Send",
+      u_title: "Public Profiles", a_title: "Account Settings", l_lang: "SELECT LANGUAGE",
+      l_desc: "BIOGRAPHY", l_status: "PROFILE STATUS", a_btn_save: "Save Settings", a_btn_del: "Delete Account"
+    },
+    de: {
+      t_su_title: "Konto erstellen", t_su_sub: "Beginnen Sie Ihre Reise mit NyxirCore", b_su: "Registrieren",
+      t_si_title: "Willkommen zurück", t_si_sub: "Melden Sie sich bei Ihrem Nyxir-Konto an",
+      b_si: "Anmelden", t_o_r1: "Bereits Mitglied?", b_o_r1: "Anmelden", t_o_r2: "Neu hier?", b_o_r2: "Registrieren",
+      m_home: "Startseite", m_rooms: "Räume", m_chats: "Chat", m_users: "Benutzer", m_account: "Konto", m_logout: "Abmelden",
+      h_welcome: "Willkommen bei RoomZyon Texting Edition", h_sub: "Wählen Sie links einen Reiter aus.",
+      r_title: "Klassische Räume", r_btn_join: "Beitreten / Erstellen", r_btn_send: "Senden",
+      c_title: "Direkt-Chat", c_btn_add: "Kontakt hinzufügen", c_btn_send: "Senden",
+      u_title: "Öffentliche Profile", a_title: "Kontoeinstellungen", l_lang: "SPRACHE WÄHLEN",
+      l_desc: "BIOGRAFIE", l_status: "PROFILSTATUS", a_btn_save: "Einstellungen speichern", a_btn_del: "Konto löschen"
+    },
+    es: {
+      t_su_title: "Crear cuenta", t_su_sub: "Comienza tu viaje con NyxirCore", b_su: "Registrarse",
+      t_si_title: "Bienvenido de nuevo", t_si_sub: "Inicia sesión en tu cuenta Nyxir",
+      b_si: "Ingresar", t_o_r1: "¿Ya eres miembro?", b_o_r1: "Ingresar", t_o_r2: "¿Nuevo aquí?", b_o_r2: "Registrarse",
+      m_home: "Inicio", m_rooms: "Salas", m_chats: "Chat", m_users: "Usuarios", m_account: "Cuenta", m_logout: "Cerrar sesión",
+      h_welcome: "Bienvenido a RoomZyon Texting Edition", h_sub: "Seleccione una pestaña a la izquierda para comenzar.",
+      r_title: "Salas Clásicas", r_btn_join: "Unirse / Crear", r_btn_send: "Enviar",
+      c_title: "Chat Directo", c_btn_add: "Añadir Contacto", c_btn_send: "Enviar",
+      u_title: "Perfiles Públicos", a_title: "Información de Cuenta", l_lang: "SELECCIONAR IDIOMA",
+      l_desc: "BIOGRAFÍA", l_status: "ESTADO DEL PERFIL", a_btn_save: "Guardar Ajustes", a_btn_del: "Eliminar Cuenta"
+    },
+    fr: {
+      t_su_title: "Créer un compte", t_su_sub: "Commencez votre voyage avec NyxirCore", b_su: "S'inscrire",
+      t_si_title: "Bon retour", t_si_sub: "Connectez-vous à votre compte Nyxir",
+      b_si: "Connexion", t_o_r1: "Déjà membre?", b_o_r1: "Connexion", t_o_r2: "Nouveau ici?", b_o_r2: "S'inscrire",
+      m_home: "Accueil", m_rooms: "Salons", m_chats: "Chat", m_users: "Utilisateurs", m_account: "Compte", m_logout: "Déconnexion",
+      h_welcome: "Bienvenue sur RoomZyon Texting Edition", h_sub: "Sélectionnez un onglet dans le menu de gauche.",
+      r_title: "Salons Classiques", r_btn_join: "Rejoindre / Créer", r_btn_send: "Envoyer",
+      c_title: "Chat Direct", c_btn_add: "Ajouter Contact", c_btn_send: "Envoyer",
+      u_title: "Profils Publics", a_title: "Infos du Compte", l_lang: "CHOISIR LA LANGUE",
+      l_desc: "BIOGRAPHY", l_status: "STATUT DU PROFIL", a_btn_save: "Enregistrer", a_btn_del: "Supprimer le compte"
+    }
+  };
+
+  window.changeLanguage = (lang) => {
+    const translation = languages[lang] || languages.sv;
+    for (const key in translation) {
+      const el = document.getElementById(key);
+      if (el) {
+        if (el.tagName === "INPUT" || el.tagName === "TEXTAREA") el.placeholder = translation[key];
+        else if (el.querySelector('span')) el.querySelector('span').innerText = translation[key];
+        else el.innerText = translation[key];
+      }
+    }
+  };
+
+  window.showModal = (title, text) => {
+    document.getElementById('modalTitle').innerText = title;
+    document.getElementById('modalText').innerText = text;
+    document.getElementById('customModal').classList.add('active');
+  };
+  window.closeModal = () => document.getElementById('customModal').classList.remove('active');
+
+  const mapAuthError = (code) => {
+    switch(code) {
+      case 'auth/invalid-credential': return 'Fel användarnamn eller lösenord.';
+      case 'auth/weak-password': return 'Lösenordet måste vara minst 6 tecken långt.';
+      case 'auth/email-already-in-reply':
+      case 'auth/email-already-in-use': return 'Användarnamnet är redan upptaget.';
+      case 'auth/invalid-email': return 'Ogiltigt format på användarnamnet.';
+      default: return 'Ett oväntat fel inträffade. Försök igen.';
+    }
+  };
+
+  window.handleAuth = async (type) => {
+    const isLogin = type === 'login';
+    const u = document.getElementById(isLogin ? 'l_u' : 'r_u').value.trim().toLowerCase();
+    const p = document.getElementById(isLogin ? 'l_p' : 'r_p').value;
+    
+    if(!u || !p) return showModal("Fel", "Fyll i alla fält.");
+    const email = u + "@nyxircore.com";
+
+    try {
+      if(isLogin) {
+        await signInWithEmailAndPassword(authNyxir, email, p);
+        localStorage.setItem('roomzyon_last_user', email);
+        localStorage.setItem('roomzyon_last_pass', p);
+      } else {
+        const cred = await createUserWithEmailAndPassword(authNyxir, email, p);
+        const uid = cred.user.uid;
+        
+        await setDoc(doc(dbNyxir, "users", uid), {
+          username: u,
+          language: "sv",
+          description: "",
+          status: "private"
+        });
+
+        await setDoc(doc(dbTexting, "chatt", u), {
+          username: u,
+          contacts: [],
+          incomingRequests: []
+        });
+
+        showModal("Framgång", "Konto skapat! Loggar in...");
+        await signInWithEmailAndPassword(authNyxir, email, p);
+        localStorage.setItem('roomzyon_last_user', email);
+        localStorage.setItem('roomzyon_last_pass', p);
+      }
+    } catch(e) { 
+      showModal("Auth Fel", mapAuthError(e.code)); 
+    }
+  };
+
+  const checkAutoLogin = async () => {
+    const savedEmail = localStorage.getItem('roomzyon_last_user');
+    const savedPass = localStorage.getItem('roomzyon_last_pass');
+    if (savedEmail && savedPass && !authNyxir.currentUser) {
+      try { await signInWithEmailAndPassword(authNyxir, savedEmail, savedPass); } 
+      catch(e) { localStorage.clear(); }
+    }
+  };
+
+  onAuthStateChanged(authNyxir, async (user) => {
+    if(user) {
+      currentUser = user.email.split('@')[0];
+      document.getElementById('globalUserTag').innerText = currentUser;
+      document.getElementById('authScreen').style.display = 'none';
+      document.getElementById('appScreen').style.display = 'flex';
+      
+      const docSnap = await getDoc(doc(dbNyxir, "users", user.uid));
+      if(docSnap.exists()) {
+        const data = docSnap.data();
+        document.getElementById('langSelect').value = data.language || "sv";
+        document.getElementById('accDesc').value = data.description || "";
+        document.getElementById('accStatus').value = data.status || "private";
+        changeLanguage(data.language);
+      }
+      loadPublicProfiles();
+      listenToPrivateChats();
+    } else {
+      document.getElementById('authScreen').style.display = 'flex';
+      document.getElementById('appScreen').style.display = 'none';
+    }
+  });
+
+  window.logout = () => {
+    localStorage.clear();
+    authNyxir.signOut();
+  };
+
+  window.deleteAccount = async () => {
+    if(!confirm("Är du helt säker på att du vill radera ditt konto? Detta kan inte ångras.")) return;
+    try {
+      const user = authNyxir.currentUser;
+      const uName = currentUser;
+      if(user) {
+        await deleteDoc(doc(dbNyxir, "users", user.uid));
+        await deleteDoc(doc(dbTexting, "chatt", uName));
+        await deleteUser(user);
+        localStorage.clear();
+        showModal("Konto raderat", "Ditt konto har tagits bort från alla system.");
+      }
+    } catch(e) { showModal("Fel", "Logga in igen och försök radera kontot direkt."); }
+  };
+
+  window.saveAccountInfo = async () => {
+    const user = authNyxir.currentUser;
+    if(!user) return;
+    const lang = document.getElementById('langSelect').value;
+    const desc = document.getElementById('accDesc').value;
+    const stat = document.getElementById('accStatus').value;
+
+    await updateDoc(doc(dbNyxir, "users", user.uid), {
+      language: lang,
+      description: desc,
+      status: stat
+    });
+    showModal("Sparat", "Dina profilinställningar har uppdaterats.");
+    loadPublicProfiles();
+  };
+
+  function loadPublicProfiles() {
+    const q = query(collection(dbNyxir, "users"), where("status", "==", "public"));
+    onSnapshot(q, (snap) => {
+      const grid = document.getElementById('publicUsersGrid');
+      grid.innerHTML = "";
+      snap.forEach(d => {
+        const data = d.data();
+        if(data.username === currentUser) return;
+        grid.innerHTML += `
+          <div class="item-card">
+            <h4>\${data.username}</h4>
+            <p>\${data.description || 'Ingen biografi tillgänglig.'}</p>
+            <button onclick="startDirectChat('\${data.username}')" style="padding: 8px 15px; font-size:12px;">Meddelande</button>
+          </div>`;
+      });
+    });
+  }
+
+  window.joinOrCreateRoom = async () => {
+    const rName = document.getElementById('roomInputName').value.trim().toLowerCase();
+    const rPass = document.getElementById('roomInputPass').value;
+    if(!rName || !rPass) return showModal("Fel", "Fyll i rumsnamn och lösenord.");
+
+    const rRef = doc(dbTexting, "Rooms", rName);
+    const rSnap = await getDoc(rRef);
+
+    if(!rSnap.exists()) {
+      await setDoc(rRef, { name: rName, password: rPass });
+    } else if(rSnap.data().password !== rPass) {
+      return showModal("Fel lösenord", "Kombinationen av rumsnamn och lösenord stämmer inte.");
+    }
+
+    activeRoom = rName;
+    if(unsubscribeRoom) unsubscribeRoom();
+    
+    unsubscribeRoom = onSnapshot(query(collection(dbTexting, "Rooms", rName, "messages"), orderBy("time", "asc")), (snap) => {
+      const area = document.getElementById('roomMsgArea');
+      area.innerHTML = "";
+      snap.forEach(m => {
+        const d = m.data();
+        const side = d.from === currentUser ? 'me' : 'them';
+        area.innerHTML += `<div class="bubble \${side}"><b>\${d.from}:</b> <br>\${d.text}</div>`;
+      });
+      area.scrollTop = area.scrollHeight;
+    });
+  };
+
+  window.sendRoomMessage = async () => {
+    const txt = document.getElementById('roomMsgInput').value.trim();
+    if(!txt || !activeRoom) return;
+    await addDoc(collection(dbTexting, "Rooms", activeRoom, "messages"), {
+      from: currentUser,
+      text: txt,
+      time: serverTimestamp()
+    });
+    document.getElementById('roomMsgInput').value = "";
+  };
+
+  window.addContact = async () => {
+    const target = document.getElementById('addContactInput').value.trim().toLowerCase();
+    if(!target || target === currentUser) return;
+
+    const tSnap = await getDoc(doc(dbTexting, "chatt", target));
+    if(!tSnap.exists()) return showModal("Hittades inte", "Denna Nyxir-användare har inte aktiverat sin Texting-profil.");
+
+    const myRef = doc(dbTexting, "chatt", currentUser);
+    const mySnap = await getDoc(myRef);
+    let myContacts = mySnap.data().contacts || [];
+
+    if(!myContacts.includes(target)) {
+      myContacts.push(target);
+      await updateDoc(myRef, { contacts: myContacts });
+    }
+    startDirectChat(target);
+  };
+
+  function listenToPrivateChats() {
+    onSnapshot(doc(dbTexting, "chatt", currentUser), async (snap) => {
+      if(!snap.exists()) return;
+      const data = snap.data();
+      const listContainer = document.getElementById('contactsList');
+      listContainer.innerHTML = "";
+
+      const contacts = data.contacts || [];
+      contacts.forEach(c => {
+        listContainer.innerHTML += `<button onclick="startDirectChat('\${c}')" style="width:100%; background:rgba(255,255,255,0.02); text-align:left; justify-content:flex-start;">🟢 \${c}</button>`;
+      });
+
+      const incoming = data.incomingRequests || [];
+      incoming.forEach(ic => {
+        if(!contacts.includes(ic)) {
+          listContainer.innerHTML += `
+            <div class="item-card" style="padding:10px; background:rgba(255,77,77,0.05);">
+              <span style="font-size:12px;">Okänd: \${ic}</span>
+              <button onclick="acceptAndChat('\${ic}')" style="padding:4px 10px; font-size:10px; margin-top:5px;">Svara / Lägg till</button>
+            </div>`;
+        }
+      });
+    });
+  }
+
+  window.acceptAndChat = async (target) => {
+    const myRef = doc(dbTexting, "chatt", currentUser);
+    const mySnap = await getDoc(myRef);
+    let myContacts = mySnap.data().contacts || [];
+    if(!myContacts.includes(target)) myContacts.push(target);
+    await updateDoc(myRef, { contacts: myContacts });
+    startDirectChat(target);
+  };
+
+  window.startDirectChat = (partner) => {
+    activeChatPartner = partner;
+    showTab('chats');
+    document.getElementById('directMsgInput').disabled = false;
+    document.getElementById('c_btn_send').disabled = false;
+
+    const chatId = [currentUser, partner].sort().join("_");
+
+    if(unsubscribeChats) unsubscribeChats();
+    unsubscribeChats = onSnapshot(query(collection(dbTexting, "private_messages", chatId, "messages"), orderBy("time", "asc")), (snap) => {
+      const area = document.getElementById('directMsgArea');
+      area.innerHTML = "";
+      snap.forEach(m => {
+        const d = m.data();
+        const side = d.from === currentUser ? 'me' : 'them';
+        area.innerHTML += `<div class="bubble \${side}">\${d.text}</div>`;
+      });
+      area.scrollTop = area.scrollHeight;
+    });
+  };
+
+  window.sendDirectMessage = async () => {
+    const txt = document.getElementById('directMsgInput').value.trim();
+    if(!txt || !activeChatPartner) return;
+
+    const chatId = [currentUser, activeChatPartner].sort().join("_");
+    
+    await addDoc(collection(dbTexting, "private_messages", chatId, "messages"), {
+      from: currentUser,
+      text: txt,
+      time: serverTimestamp()
+    });
+
+    const targetRef = doc(dbTexting, "chatt", activeChatPartner);
+    const targetSnap = await getDoc(targetRef);
+    if(targetSnap.exists()) {
+      let reqs = targetSnap.data().incomingRequests || [];
+      if(!reqs.includes(currentUser)) {
+        reqs.push(currentUser);
+        await updateDoc(targetRef, { incomingRequests: reqs });
+      }
+    }
+
+    document.getElementById('directMsgInput').value = "";
+  };
+
+  window.showTab = (id) => {
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    
+    const targetTab = document.getElementById(id);
+    if(targetTab) targetTab.classList.add('active');
+    
+    const items = document.querySelectorAll('.nav-item');
+    items.forEach(item => {
+      if(item.getAttribute('onclick') === `showTab('\${id}')`) item.classList.add('active');
+    });
+  };
+
+  checkAutoLogin();
+</script>
+</body>
+</html>
+`;
+
+app.get('/', (req, res) => res.send(htmlContent));
+app.get('/manifest.json', (req, res) => {
+  res.json({
+    "name": "RoomZyon",
+    "short_name": "RoomZyon",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#030406",
+    "theme_color": "#6b4cff",
+    "icons": [{ "src": "/roomzyon_logo.png", "sizes": "192x192", "type": "image/png" }]
+  });
+});
+app.listen(PORT, () => console.log('Live on port ' + PORT));
