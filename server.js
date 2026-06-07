@@ -42,8 +42,8 @@ const htmlContent = `
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>RoomZyon - Texting Edition</title>
 <link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="roomzyon_logo.png">
-<link rel="icon" href="roomzyon_logo.png">
+<link rel="apple-touch-icon" href="roomzyon-texting_logo.png">
+<link rel="icon" href="roomzyon-texting_logo.png">
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;800&display=swap');
 
