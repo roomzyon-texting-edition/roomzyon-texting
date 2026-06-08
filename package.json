@@ -1,8 +1,12 @@
 {
-  "name": "roomzyon",
+  "name": "roomzyon-texting-edition",
   "version": "1.0.0",
   "type": "module",
+  "description": "RoomZyon Texting Edition is a website where you can chat with any user and connect with family and friends. RoomZyon is owned by NyxirCore.",
   "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
   "dependencies": {
     "express": "^4.19.2"
   }
